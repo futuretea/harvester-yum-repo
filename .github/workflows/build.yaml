@@ -1,0 +1,96 @@
+name: Build Repo
+
+on: [push, pull_request]
+
+env:
+  CENTOS_VERSION: '7.9.2009'
+  KUBE_VERSION: '1.20.6'
+  DOCKER_VERSION: '19.03.15-3'
+  CEPH_VERSION: '15.2.9'
+  IMAGE_REPO: 'futuretea/harvester-yum-repo'
+  KERNEL_DOWNLOAD_URL: 'https://elrepo.org/linux/kernel/el7/x86_64/RPMS/kernel-lt-5.4.117-1.el7.elrepo.x86_64.rpm'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build repo
+      run: |
+        cat <<EOF | sudo tee ${PWD}/kubernetes.repo
+        [kubernetes]
+        name=Kubernetes
+        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=1
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        exclude=kubelet kubeadm kubectl
+        EOF
+        docker run -t --rm -v ${PWD}/rpms:/rpms -v ${PWD}/kubernetes.repo:/etc/yum.repos.d/kubernetes.repo centos:${CENTOS_VERSION} bash -c "
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &&
+        yum install -y https://download.ceph.com/rpm-${CEPH_VERSION}/el7/noarch/ceph-release-1-1.el7.noarch.rpm &&
+        yum install -y yum-utils &&
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &&
+        mkdir -p /rpms &&
+        yum -y install --downloadonly --downloaddir=/rpms docker-ce-${DOCKER_VERSION}.el7.x86_64 docker-ce-cli-${DOCKER_VERSION}.el7.x86_64 &&
+        yum -y install --downloadonly --downloaddir=/rpms kubectl-${KUBE_VERSION} kubelet-${KUBE_VERSION} kubeadm-${KUBE_VERSION} --disableexcludes=kubernetes &&
+        yum -y install --downloadonly --downloaddir=/rpms iscsi-initiator-utils nfs-utils &&
+        yum -y install --downloadonly --downloaddir=/rpms libvirt-client && 
+        yum -y install --downloadonly --downloaddir=/rpms ceph-deploy ceph ceph-radosgw radosgw-agent rbd-nbd rbd-mirror &&
+        yum -y install --downloadonly --downloaddir=/rpms wget rsync jq git tcpdump nc bind-utils net-tools ipvsadm docker-compose &&
+        pushd /rpms &&
+        curl -OL ${KERNEL_DOWNLOAD_URL} &&
+        popd &&
+        yum install -y createrepo &&
+        yum clean all &&
+        createrepo /rpms"
+
+        sudo chmod -R 755 ${PWD}/rpms
+
+    - name: Generate release info
+      id: info
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        version=$(echo $GITHUB_REF | cut -d / -f 3)
+        image=${IMAGE_REPO}:${version}
+        echo "::set-output name=image::${image}"
+        cat >release.txt <<EOF
+        centos: ${CENTOS_VERSION}
+        kernel: ${KERNEL_DOWNLOAD_URL}
+        kubernetes: ${KUBE_VERSION}
+        docker: ${DOCKER_VERSION}
+        EOF
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+      if: startsWith(github.ref, 'refs/tags/')
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      if: startsWith(github.ref, 'refs/tags/')
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.info.outputs.image }}
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        prerelease: true
+        body_path: release.txt
