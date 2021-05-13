@@ -68,5 +68,5 @@ systemctl status kubelet
 ## K3s packages
 ```bash
 hi container-selinux selinux-policy-base k3s-selinux
-curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_SELINUX_RPM="true" sh -
 ```
