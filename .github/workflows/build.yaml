@@ -9,6 +9,7 @@ env:
   CEPH_VERSION: '15.2.9'
   IMAGE_REPO: 'futuretea/harvester-yum-repo'
   KERNEL_DOWNLOAD_URL: 'https://elrepo.org/linux/kernel/el7/x86_64/RPMS/kernel-lt-5.4.117-1.el7.elrepo.x86_64.rpm'
+  K3S_VERSION: 'v1.20.6%2Bk3s1'
   K3S_SELINUX_URL: 'https://github.com/k3s-io/k3s-selinux/releases/download/v0.3.stable.0/k3s-selinux-0.3-0.el7.noarch.rpm'
 jobs:
   build:
@@ -36,7 +37,6 @@ jobs:
         yum -y install --downloadonly --downloaddir=/rpms yum-utils
         yum install -y yum-utils &&
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &&
-        mkdir -p /rpms &&
         yum -y install --downloadonly --downloaddir=/rpms docker-ce-${DOCKER_VERSION}.el7.x86_64 docker-ce-cli-${DOCKER_VERSION}.el7.x86_64 &&
         yum -y install --downloadonly --downloaddir=/rpms kubectl-${KUBE_VERSION} kubelet-${KUBE_VERSION} kubeadm-${KUBE_VERSION} --disableexcludes=kubernetes &&
         yum -y install --downloadonly --downloaddir=/rpms iscsi-initiator-utils nfs-utils &&
@@ -51,8 +51,15 @@ jobs:
         yum install -y createrepo &&
         yum clean all &&
         createrepo /rpms"
-
         sudo chmod -R 755 ${PWD}/rpms
+
+        mkdir -p ${PWD}/bins
+        pushd ${PWD}/bins
+        curl -OL https://github.com/k3s-io/k3s/releases/download/${K3S_VERSION}/k3s
+        curl -OL https://raw.githubusercontent.com/k3s-io/k3s/${K3S_VERSION}/install.sh
+        mv install.sh k3s-install.sh
+        popd
+
 
     - name: Generate release info
       id: info
@@ -66,6 +73,7 @@ jobs:
         kernel: ${KERNEL_DOWNLOAD_URL}
         docker: ${DOCKER_VERSION}
         kubernetes: ${KUBE_VERSION}
+        k3s: ${K3S_VERSION}
         k3s-selinux: ${K3S_SELINUX_URL}
         EOF
 

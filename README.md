@@ -2,7 +2,7 @@
 
 ## Setup Repo Server
 ```bash
-docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.2
+docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.3
 ```
 
 ## Add Yum Repo
@@ -68,5 +68,6 @@ systemctl status kubelet
 ## K3s packages
 ```bash
 hi container-selinux selinux-policy-base k3s-selinux
-curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_SELINUX_RPM="true" sh -
+sudo curl -OL http://${repo_server}:2009/bins/k3s && chmod +x k3s && mv k3s /usr/local/bin/
+curl -sfL http://${repo_server}:2009/bins/k3s-install.sh | INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_SKIP_SELINUX_RPM=true sh -
 ```
