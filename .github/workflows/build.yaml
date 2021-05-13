@@ -9,6 +9,7 @@ env:
   CEPH_VERSION: '15.2.9'
   IMAGE_REPO: 'futuretea/harvester-yum-repo'
   KERNEL_DOWNLOAD_URL: 'https://elrepo.org/linux/kernel/el7/x86_64/RPMS/kernel-lt-5.4.117-1.el7.elrepo.x86_64.rpm'
+  K3S_SELINUX_URL: 'https://github.com/k3s-io/k3s-selinux/releases/download/v0.3.stable.0/k3s-selinux-0.3-0.el7.noarch.rpm'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +33,7 @@ jobs:
         docker run -t --rm -v ${PWD}/rpms:/rpms -v ${PWD}/kubernetes.repo:/etc/yum.repos.d/kubernetes.repo centos:${CENTOS_VERSION} bash -c "
         yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &&
         yum install -y https://download.ceph.com/rpm-${CEPH_VERSION}/el7/noarch/ceph-release-1-1.el7.noarch.rpm &&
+        yum -y install --downloadonly --downloaddir=/rpms yum-utils
         yum install -y yum-utils &&
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &&
         mkdir -p /rpms &&
@@ -40,9 +42,11 @@ jobs:
         yum -y install --downloadonly --downloaddir=/rpms iscsi-initiator-utils nfs-utils &&
         yum -y install --downloadonly --downloaddir=/rpms libvirt-client && 
         yum -y install --downloadonly --downloaddir=/rpms ceph-deploy ceph ceph-radosgw radosgw-agent rbd-nbd rbd-mirror &&
-        yum -y install --downloadonly --downloaddir=/rpms wget rsync jq git tcpdump nc bind-utils net-tools ipvsadm docker-compose &&
+        yum -y install --downloadonly --downloaddir=/rpms unzip wget rsync jq git tcpdump nc bind-utils net-tools ipvsadm docker-compose &&
+        yum -y install --downloadonly --downloaddir=/rpms container-selinux selinux-policy-base &&
         pushd /rpms &&
         curl -OL ${KERNEL_DOWNLOAD_URL} &&
+        curl -OL ${K3S_SELINUX_URL} &&
         popd &&
         yum install -y createrepo &&
         yum clean all &&
@@ -60,8 +64,9 @@ jobs:
         cat >release.txt <<EOF
         centos: ${CENTOS_VERSION}
         kernel: ${KERNEL_DOWNLOAD_URL}
-        kubernetes: ${KUBE_VERSION}
         docker: ${DOCKER_VERSION}
+        kubernetes: ${KUBE_VERSION}
+        k3s-selinux: ${K3S_SELINUX_URL}
         EOF
 
     - name: Set up QEMU

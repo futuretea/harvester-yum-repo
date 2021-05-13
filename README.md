@@ -1,11 +1,11 @@
 # harvester-yum-repo
 
-## Setup repo server
+## Setup Repo Server
 ```bash
-docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.1
+docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.2
 ```
 
-## Add yum repo
+## Add Yum Repo
 ```bash
 # replace 192.168.1.79 with your repo server ip
 repo_server="192.168.1.79"
@@ -19,20 +19,26 @@ exclude=kubelet kubeadm kubectl
 EOF
 ```
 
-## Install packages
+## Config Alias
+```
+alias hi='yum -y install --disableexcludes=harvester --disablerepo="*" --enablerepo="harvester"'
+```
+## Upgrade Kernel
 ```bash
-yum -y install --disableexcludes=harvester --disablerepo="*" --enablerepo="harvester" \
-    kernel-lt \
-    docker-ce docker-ce-cli containerd.io \
-    kubelet kubeadm kubectl \
-    iscsi-initiator-utils nfs-utils \
-    libvirt-client
+hi kernel-lt
 grub2-set-default 0
 reboot
 ```
 
-## Start Docker
+## Longhorn packages
 ```bash
+hi iscsi-initiator-utils nfs-utils
+```
+
+## Docker packages
+```bash
+hi docker-ce docker-ce-cli containerd.io
+
 sudo mkdir /etc/docker
 cat <<EOF | sudo tee /etc/docker/daemon.json
 {
@@ -48,11 +54,19 @@ sudo systemctl enable --now docker
 systemctl status docker
 ```
 
-## Start Kubelet
+## K8s packages
 ```bash
+hi kubelet kubeadm kubectl
+
 # Set SELinux in permissive mode (effectively disabling it)
 sudo setenforce 0
 sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 sudo systemctl enable --now kubelet
 systemctl status kubelet
+```
+
+## K3s packages
+```bash
+hi container-selinux selinux-policy-base k3s-selinux
+curl -sfL https://get.k3s.io | sh -
 ```
