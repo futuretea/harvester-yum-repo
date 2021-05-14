@@ -2,7 +2,7 @@
 
 ## Setup Repo Server
 ```bash
-docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.3
+docker run -d --restart=unless-stopped -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.3
 ```
 
 ## Add Yum Repo
