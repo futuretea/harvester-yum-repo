@@ -25,7 +25,8 @@ alias hi='yum -y install --disableexcludes=harvester --disablerepo="*" --enabler
 ```
 ## Upgrade Kernel
 ```bash
-hi kernel-lt
+yum -y remove linux-firmware
+hi kernel-uek linux-firmware
 grub2-set-default 0
 reboot
 ```
