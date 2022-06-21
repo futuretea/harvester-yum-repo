@@ -2,7 +2,7 @@
 
 ## Setup Repo Server
 ```bash
-docker run -d -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.3
+docker run -d --restart=unless-stopped -p 2009:2009 --name=harvester-yum-repo futuretea/harvester-yum-repo:v0.0.3
 ```
 
 ## Add Yum Repo
@@ -83,10 +83,6 @@ sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 ## K8s packages
 ```bash
 hi kubelet kubeadm kubectl
-
-# Set SELinux in permissive mode (effectively disabling it)
-sudo setenforce 0
-sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 sudo systemctl enable --now kubelet
 systemctl status kubelet
 ```

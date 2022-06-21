@@ -26,8 +26,8 @@ jobs:
         name=Kubernetes
         baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
         enabled=1
-        gpgcheck=1
-        repo_gpgcheck=1
+        gpgcheck=0
+        repo_gpgcheck=0
         gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
         exclude=kubelet kubeadm kubectl
         EOF
@@ -40,7 +40,7 @@ jobs:
         yum -y install --downloadonly --downloaddir=/rpms docker-ce-${DOCKER_VERSION}.el7.x86_64 docker-ce-cli-${DOCKER_VERSION}.el7.x86_64 &&
         yum -y install --downloadonly --downloaddir=/rpms kubectl-${KUBE_VERSION} kubelet-${KUBE_VERSION} kubeadm-${KUBE_VERSION} --disableexcludes=kubernetes &&
         yum -y install --downloadonly --downloaddir=/rpms iscsi-initiator-utils nfs-utils &&
-        yum -y install --downloadonly --downloaddir=/rpms libvirt-client && 
+        yum -y install --downloadonly --downloaddir=/rpms libvirt-client qemu-guest-agent open-vm-tools &&
         yum -y install --downloadonly --downloaddir=/rpms ceph-deploy ceph ceph-radosgw radosgw-agent rbd-nbd rbd-mirror &&
         yum -y install --downloadonly --downloaddir=/rpms unzip wget rsync jq git tcpdump nc bind-utils net-tools ipvsadm docker-compose &&
         yum -y install --downloadonly --downloaddir=/rpms container-selinux selinux-policy-base &&
