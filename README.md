@@ -83,33 +83,6 @@ sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
 ## K8s packages
 ```bash
-# Disable swap
-swapoff -a
-sed -i '/swap/d' /etc/fstab
-
-# configure kernel
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
-br_netfilter
-EOF
-
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-sudo sysctl --system
-
-# Disable firewalld
-systemctl stop firewalld.service
-systemctl disable firewalld.service
-
-# Set SELinux in permissive mode (effectively disabling it)
-sudo setenforce 0
-sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-```
-
-
-## K8s packages
-```bash
 hi kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
 systemctl status kubelet
